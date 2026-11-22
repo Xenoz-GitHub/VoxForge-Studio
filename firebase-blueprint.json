@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile and community acknowledgment state.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name.",
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User email address.",
+          "maxLength": 200
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Optional avatar URL.",
+          "maxLength": 500
+        },
+        "communityConnected": {
+          "type": "boolean",
+          "description": "Whether the user acknowledged connecting with the developer channels."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["uid", "displayName", "email", "communityConnected", "createdAt", "updatedAt"]
+    },
+    "GenerationRecord": {
+      "title": "GenerationRecord",
+      "description": "Saved TTS synthesis history metadata owned by an authenticated user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owner.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["single", "dialogue"],
+          "description": "Synthesis mode."
+        },
+        "model": {
+          "type": "string",
+          "enum": ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"],
+          "description": "Gemini TTS model identifier."
+        },
+        "text": {
+          "type": "string",
+          "description": "Synthesized script text.",
+          "maxLength": 4000
+        },
+        "style": {
+          "type": "string",
+          "description": "Voice style direction prompt.",
+          "maxLength": 1000
+        },
+        "voiceName": {
+          "type": "string",
+          "description": "Prebuilt voice or speaker pair label.",
+          "maxLength": 80
+        },
+        "emphasizedWords": {
+          "type": "array",
+          "description": "List of emphasized words (max 30)."
+        },
+        "durationSeconds": {
+          "type": "number",
+          "description": "Audio duration in seconds."
+        },
+        "byteLength": {
+          "type": "number",
+          "description": "WAV byte length."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        }
+      },
+      "required": ["ownerId", "mode", "model", "text", "style", "voiceName", "durationSeconds", "byteLength", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private per-user profile document storing display info and community acknowledgment."
+    },
+    "/generations/{generationId}": {
+      "schema": { "$ref": "#/entities/GenerationRecord" },
+      "description": "Per-user saved TTS generation history records."
+    }
+  }
+}
