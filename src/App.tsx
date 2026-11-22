@@ -7,6 +7,7 @@ import {
   Mic2,
   RotateCcw,
 } from "lucide-react";
+import { ApiKeysModal } from "./components/ApiKeysModal";
 import { BatchQueueEditor } from "./components/BatchQueueEditor";
 import { CloudHistoryPanel } from "./components/CloudHistoryPanel";
 import { ConnectGateModal } from "./components/ConnectGateModal";
@@ -46,7 +47,9 @@ import {
   type TtsTemplate,
   type VoiceName,
 } from "./types/narration";
+import { apiFetch, apiGet } from "./utils/api";
 import { createWavBlobUrl, extractWaveformPeaks } from "./utils/audio";
+import { keyValues, loadKeys, type StoredKey } from "./utils/keyVault";
 
 const DEFAULT_TEMPLATE = TTS_TEMPLATES[0];
 const DEFAULT_DUAL_TEMPLATE = TTS_TEMPLATES[4];
@@ -193,7 +196,10 @@ export default function App() {
   const [activeTemplateId, setActiveTemplateId] = useState<string>(DEFAULT_TEMPLATE.id);
   const [mode, setMode] = useState<NarrationMode>(DEFAULT_TEMPLATE.mode);
   const [modelId, setModelId] = useState<TtsModelId>(DEFAULT_TEMPLATE.model);
-  const [configuredKeyCount, setConfiguredKeyCount] = useState<number>(1);
+  // API keys live in the browser vault; the count drives the UI and request headers.
+  const [storedKeys, setStoredKeys] = useState<StoredKey[]>(() => loadKeys());
+  const [apiKeysOpen, setApiKeysOpen] = useState<boolean>(false);
+  const configuredKeyCount = keyValues(storedKeys).length;
 
   // Single-speaker state
   const [scriptText, setScriptText] = useState<string>(DEFAULT_TEMPLATE.text);
@@ -247,14 +253,9 @@ export default function App() {
   const createdUrlsRef = useRef<string[]>([]);
 
   useEffect(() => {
-    fetch("/api/health")
-      .then((res) => res.json())
-      .then((data: { configuredKeyCount?: number }) => {
-        if (typeof data.configuredKeyCount === "number" && data.configuredKeyCount > 0) {
-          setConfiguredKeyCount(data.configuredKeyCount);
-        }
-      })
-      .catch(() => {});
+    // Re-read the vault on mount so keys from another tab are picked up.
+    setStoredKeys(loadKeys());
+    apiGet<{ ok: boolean }>("/api/health").catch(() => {});
 
     return () => {
       for (const url of createdUrlsRef.current) {
@@ -532,25 +533,8 @@ export default function App() {
         );
 
         try {
-          const res = await fetch("/api/tts/batch", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              defaultStyle: stylePrompt.trim(),
-              defaultVoiceName: voiceName,
-              defaultModel: modelId,
-              items: validItems.map((item) => ({
-                id: item.id,
-                text: item.text.trim(),
-                voiceName: item.voiceName,
-                style: item.style.trim(),
-                model: modelId,
-              })),
-            }),
-          });
-
-          const data = (await res.json()) as {
-            results?: Array<{
+          const data = await apiFetch<{
+            results: Array<{
               id: string;
               ok: boolean;
               audioBase64?: string;
@@ -563,16 +547,22 @@ export default function App() {
               keySlot?: number;
               error?: string;
             }>;
-            configuredKeyCount?: number;
-            error?: string;
-          };
+            keyPoolSize?: number;
+          }>("/api/tts/batch", {
+            defaultStyle: stylePrompt.trim(),
+            defaultVoiceName: voiceName,
+            defaultModel: modelId,
+            items: validItems.map((item) => ({
+              id: item.id,
+              text: item.text.trim(),
+              voiceName: item.voiceName,
+              style: item.style.trim(),
+              model: modelId,
+            })),
+          });
 
-          if (!res.ok || !data.results) {
-            throw new Error(data.error || "Batch audio generation failed.");
-          }
-
-          if (typeof data.configuredKeyCount === "number") {
-            setConfiguredKeyCount(data.configuredKeyCount);
+          if (!data.results) {
+            throw new Error("Batch audio generation failed.");
           }
 
           const newTakes: NarrationTake[] = [];
@@ -652,25 +642,8 @@ export default function App() {
 
         setIsGenerating(true);
         try {
-          const res = await fetch("/api/tts/batch", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              defaultStyle: stylePrompt.trim(),
-              defaultModel: modelId,
-              items: auditionVoices.map((v) => ({
-                id: `audition-${v}`,
-                text: scriptText.trim(),
-                voiceName: v,
-                style: stylePrompt.trim(),
-                emphasizedWords,
-                model: modelId,
-              })),
-            }),
-          });
-
-          const data = (await res.json()) as {
-            results?: Array<{
+          const data = await apiFetch<{
+            results: Array<{
               id: string;
               ok: boolean;
               audioBase64?: string;
@@ -683,11 +656,21 @@ export default function App() {
               keySlot?: number;
               error?: string;
             }>;
-            error?: string;
-          };
+          }>("/api/tts/batch", {
+            defaultStyle: stylePrompt.trim(),
+            defaultModel: modelId,
+            items: auditionVoices.map((v) => ({
+              id: `audition-${v}`,
+              text: scriptText.trim(),
+              voiceName: v,
+              style: stylePrompt.trim(),
+              emphasizedWords,
+              model: modelId,
+            })),
+          });
 
-          if (!res.ok || !data.results) {
-            throw new Error(data.error || "Multi-voice generation failed.");
+          if (!data.results) {
+            throw new Error("Multi-voice generation failed.");
           }
 
           const generatedTakes: NarrationTake[] = [];
@@ -771,13 +754,7 @@ export default function App() {
                 },
               };
 
-        const res = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        const data = (await res.json()) as {
+        const data = await apiFetch<{
           audioBase64?: string;
           mimeType?: string;
           durationSeconds?: number;
@@ -786,11 +763,10 @@ export default function App() {
           voiceName?: string;
           style?: string;
           keySlot?: number;
-          error?: string;
-        };
+        }>("/api/tts", payload);
 
-        if (!res.ok || !data.audioBase64) {
-          throw new Error(data.error || "Unable to synthesize speech.");
+        if (!data.audioBase64) {
+          throw new Error("Unable to synthesize speech.");
         }
 
         const newTake = await createTakeFromResponse({
@@ -845,6 +821,11 @@ export default function App() {
 
   // Enforces authentication + developer community connect gate before synthesizing
   const handleGenerateRequest = useCallback(() => {
+    // Keys gate first: without a key the request cannot succeed at all.
+    if (configuredKeyCount === 0) {
+      setApiKeysOpen(true);
+      return;
+    }
     if (!authUser || !userProfile?.communityConnected) {
       pendingGenerateRef.current = true;
       setAuthError(null);
@@ -852,7 +833,12 @@ export default function App() {
       return;
     }
     executeGeneration(authUser.uid);
-  }, [authUser, userProfile?.communityConnected, executeGeneration]);
+  }, [
+    configuredKeyCount,
+    authUser,
+    userProfile?.communityConnected,
+    executeGeneration,
+  ]);
 
   const handleGoogleSignIn = async () => {
     setAuthError(null);
@@ -983,7 +969,7 @@ export default function App() {
     : "Generate Audio";
 
   return (
-    <div className="min-h-screen flex flex-col overflow-x-clip bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-16 md:pb-0 transition-colors duration-200">
+    <div className="min-h-screen flex flex-col overflow-x-clip bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-20 md:pb-0 transition-colors duration-200">
       {/* Strict 3-Zone Top Navigation with Dark/Light Toggle */}
       <Navbar
         activeView={activeView}
@@ -994,6 +980,8 @@ export default function App() {
         authUser={authUser}
         onSignIn={handleGoogleSignIn}
         onSignOut={() => signOutUser()}
+        keyCount={configuredKeyCount}
+        onOpenApiKeys={() => setApiKeysOpen(true)}
       />
 
       {activeView === "landing" && (
@@ -1011,6 +999,7 @@ export default function App() {
           userDisplayName={authUser?.displayName || authUser?.email || undefined}
           preferredVoice={onboardingPrefs.preferredVoice}
           configuredKeyCount={configuredKeyCount}
+          onManageApiKeys={() => setApiKeysOpen(true)}
           takes={takes}
           cloudRecords={cloudRecords}
           onSignIn={handleGoogleSignIn}
@@ -1039,25 +1028,26 @@ export default function App() {
       {activeView === "studio" && (
         <main
           id="studio"
-          className="flex-1 max-w-[1360px] w-full mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-10"
+          className="flex-1 max-w-[1360px] w-full mx-auto px-3 sm:px-6 py-6 sm:py-10 space-y-8 sm:space-y-10"
         >
-          <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+          <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4 sm:pb-6">
             <div className="max-w-2xl">
-              <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
+              <div className="flex flex-wrap items-center gap-2 text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 sm:mb-2">
                 <span>Interactive Speech Studio</span>
                 <span aria-hidden="true">·</span>
-                <span>Single, Batch &amp; Dual-Speaker</span>
+                <span className="hidden xs:inline">Single, Batch &amp; Dual-Speaker</span>
+                <span className="xs:hidden">Multi-Mode</span>
               </div>
-              <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-950 dark:text-white text-balance">
+              <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-950 dark:text-white text-balance">
                 Create &amp; Audition Voice Tracks
               </h1>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={() => navigateTo("dashboard")}
-                className="px-3.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-3 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer active:scale-95"
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
                 <span>Dashboard</span>
@@ -1502,7 +1492,7 @@ export default function App() {
                       : !userProfile?.communityConnected
                       ? "Complete community check on generate"
                       : mode === "batch"
-                      ? `Distributes clips across ${configuredKeyCount} server key(s)`
+                      ? `Distributes clips across ${configuredKeyCount} API key(s)`
                       : mode === "single" && multiVoiceEnabled
                       ? `Auditioning ${auditionVoices.join(", ")} in parallel`
                       : mode === "single"
@@ -1575,38 +1565,38 @@ export default function App() {
         </main>
       )}
 
-      {/* Quiet Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 transition-colors mt-auto">
-        <div className="max-w-[1360px] mx-auto px-4 sm:px-6 py-6 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-          <span>
-            VoxForge Studio · Built by John Lloyd Suarez (+63 952 633 0651)
+      {/* Quiet Footer - Mobile Optimized */}
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 transition-colors mt-auto pb-16 md:pb-0">
+        <div className="max-w-[1360px] mx-auto px-3 sm:px-6 py-4 sm:py-6 flex flex-col sm:flex-row sm:flex-wrap items-center sm:justify-between gap-3 sm:gap-4 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-center sm:text-left">
+            VoxForge Studio · Built by John Lloyd Suarez <span className="hidden xs:inline">(+63 952 633 0651)</span>
           </span>
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-5">
             <button
               type="button"
               onClick={() => navigateTo("landing")}
-              className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+              className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer active:scale-95"
             >
               Overview
             </button>
             <button
               type="button"
               onClick={() => navigateTo("dashboard")}
-              className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+              className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer active:scale-95"
             >
               Dashboard
             </button>
             <button
               type="button"
               onClick={() => navigateTo("studio")}
-              className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+              className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer active:scale-95"
             >
               Studio
             </button>
             <button
               type="button"
               onClick={() => navigateTo("landing", "developer")}
-              className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+              className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer active:scale-95"
             >
               Developer
             </button>
@@ -1624,6 +1614,13 @@ export default function App() {
         userDisplayName={authUser?.displayName || authUser?.email || undefined}
         onComplete={handleCompleteOnboarding}
         onSkip={handleSkipOnboarding}
+      />
+
+      {/* Gemini API Key Pool Management */}
+      <ApiKeysModal
+        isOpen={apiKeysOpen}
+        onClose={() => setApiKeysOpen(false)}
+        onKeysChanged={(keys) => setStoredKeys(keys)}
       />
 
       {/* Pre-Generation Sign-In & Community Connect Gate */}

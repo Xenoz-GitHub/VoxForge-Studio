@@ -59,45 +59,49 @@ export function LandingPage({
           className="absolute -top-32 right-0 w-[520px] h-[520px] rounded-full bg-orange-500/10 dark:bg-orange-500/15 blur-3xl pointer-events-none"
         />
 
-        <div className="relative max-w-[1360px] mx-auto px-4 sm:px-6 pt-12 pb-16 lg:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div className="relative max-w-[1360px] mx-auto px-3 sm:px-6 pt-8 sm:pt-12 pb-12 sm:pb-16 lg:py-24 grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 items-center">
           {/* Left Hero Copy */}
           <motion.div
             initial={prefersReduced ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="lg:col-span-7 space-y-6"
+            className="lg:col-span-7 space-y-4 sm:space-y-6"
           >
-            <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-medium text-slate-600 dark:text-slate-400">
               <span>VoxForge Studio</span>
               <span aria-hidden="true">·</span>
-              <span>Gemini 3.8 Speech Engine</span>
-              <span aria-hidden="true">·</span>
-              <span>Web &amp; Mobile Workspace</span>
+              <span className="hidden xs:inline">Gemini 3.8 Speech Engine</span>
+              <span className="hidden xs:inline" aria-hidden="true">·</span>
+              <span className="hidden xs:inline">Web &amp; Mobile Workspace</span>
+              <span className="xs:hidden">AI Speech Engine</span>
             </div>
 
             <h1
-              className="font-display font-bold tracking-tight text-slate-950 dark:text-white text-balance leading-[1.06]"
-              style={{ fontSize: "clamp(2.25rem, 4.3vw, 3.85rem)" }}
+              className="font-display font-bold tracking-tight text-slate-950 dark:text-white text-balance leading-[1.08]"
+              style={{ fontSize: "clamp(1.75rem, 5.5vw, 3.85rem)" }}
             >
               Studio-Grade Text-to-Speech Built for Every Script
             </h1>
 
-            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
-              Generate natural 24 kHz WAV voiceovers, podcasts, e-learning tracks, and dual-speaker dialogues in seconds. Audition five expressive personas side by side or render 20-clip batches synced to your cloud dashboard.
+            <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
+              Generate natural 24 kHz WAV voiceovers, podcasts, e-learning tracks, and dual-speaker dialogues in seconds. <span className="hidden sm:inline">Audition five expressive personas side by side or render 20-clip batches synced to your cloud dashboard.</span>
             </p>
 
-            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2">
               <motion.button
                 type="button"
                 onClick={isAuthenticated ? onOpenStudio : onGetStarted}
                 whileHover={prefersReduced ? undefined : { y: -2 }}
                 whileTap={prefersReduced ? undefined : { scale: 0.98 }}
                 transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-                className="h-12 px-6 bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold rounded-xl transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-sm shadow-orange-600/20"
+                className="h-11 sm:h-12 px-5 sm:px-6 bg-orange-600 hover:bg-orange-500 active:bg-orange-700 text-white text-sm font-semibold rounded-xl transition-all inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer shadow-lg shadow-orange-600/25 active:scale-[0.98]"
               >
                 <AudioLines className="w-4 h-4" />
-                <span>
+                <span className="hidden xs:inline">
                   {isAuthenticated ? "Open Speech Studio" : "Sign In & Get Started"}
+                </span>
+                <span className="xs:hidden">
+                  {isAuthenticated ? "Open Studio" : "Get Started"}
                 </span>
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
@@ -105,12 +109,13 @@ export function LandingPage({
               <button
                 type="button"
                 onClick={onOpenDashboard}
-                className="h-12 px-5 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm font-medium rounded-xl transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer"
+                className="h-11 sm:h-12 px-4 sm:px-5 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 active:bg-slate-300 dark:active:bg-slate-700 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-sm font-medium rounded-xl transition-all inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 cursor-pointer active:scale-[0.98]"
               >
                 <LayoutDashboard className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                <span>
+                <span className="hidden xs:inline">
                   {isAuthenticated ? "Open Dashboard" : "Explore Dashboard"}
                 </span>
+                <span className="xs:hidden">Dashboard</span>
               </button>
             </div>
           </motion.div>
