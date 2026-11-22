@@ -26,6 +26,7 @@ interface DashboardViewProps {
   userDisplayName?: string;
   preferredVoice: VoiceName;
   configuredKeyCount: number;
+  onManageApiKeys: () => void;
   takes: NarrationTake[];
   cloudRecords: CloudGenerationDoc[];
   onSignIn: () => void;
@@ -42,6 +43,7 @@ export function DashboardView({
   userDisplayName,
   preferredVoice,
   configuredKeyCount,
+  onManageApiKeys,
   takes,
   cloudRecords,
   onSignIn,
@@ -58,7 +60,13 @@ export function DashboardView({
     cloudRecords.reduce((acc, r) => acc + (r.durationSeconds || 0), 0) +
     takes.reduce((acc, t) => acc + (t.durationSeconds || 0), 0);
 
-  const metrics = [
+  const metrics: Array<{
+    label: string;
+    value: string;
+    sub: string;
+    Icon: typeof Cloud;
+    onClick?: () => void;
+  }> = [
     {
       label: "Cloud Saved Clips",
       value: isAuthenticated ? String(cloudRecords.length) : "Sign in",
@@ -80,10 +88,14 @@ export function DashboardView({
       Icon: Clock,
     },
     {
-      label: "Default Persona",
-      value: preferredVoice,
-      sub: `${configuredKeyCount} server key${configuredKeyCount === 1 ? "" : "s"} active`,
+      label: "API Key Pool",
+      value: configuredKeyCount > 0 ? String(configuredKeyCount) : "None",
+      sub:
+        configuredKeyCount > 0
+          ? `${configuredKeyCount} key${configuredKeyCount === 1 ? "" : "s"} ready for parallel render`
+          : "Add keys to enable generation",
       Icon: Sliders,
+      onClick: onManageApiKeys,
     },
   ];
 
@@ -117,6 +129,13 @@ export function DashboardView({
           )}
           <button
             type="button"
+            onClick={onManageApiKeys}
+            className="h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+          >
+            Manage API Keys
+          </button>
+          <button
+            type="button"
             onClick={() => onLaunchMode("single")}
             className="h-10 px-4 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
           >
@@ -130,13 +149,20 @@ export function DashboardView({
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map((m, idx) => {
           const Icon = m.Icon;
+          const Card = m.onClick ? motion.button : motion.div;
           return (
-            <motion.div
+            <Card
               key={m.label}
+              type={m.onClick ? "button" : undefined}
+              onClick={m.onClick}
               initial={prefersReduced ? false : { opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: idx * 0.04 }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between gap-3"
+              className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between gap-3 text-left ${
+                m.onClick
+                  ? "cursor-pointer hover:border-orange-400 dark:hover:border-orange-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+                  : ""
+              }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -152,7 +178,7 @@ export function DashboardView({
                   {m.sub}
                 </div>
               </div>
-            </motion.div>
+            </Card>
           );
         })}
       </section>
