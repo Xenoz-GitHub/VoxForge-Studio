@@ -1,4 +1,4 @@
-import { LogOut, Moon, Sun, UserCheck } from "lucide-react";
+import { KeyRound, LogOut, Moon, Sun, UserCheck } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import type { User } from "firebase/auth";
 
@@ -14,6 +14,8 @@ interface NavbarProps {
   authUser: User | null;
   onSignIn: () => void;
   onSignOut: () => void;
+  keyCount: number;
+  onOpenApiKeys: () => void;
 }
 
 export function Navbar({
@@ -25,6 +27,8 @@ export function Navbar({
   authUser,
   onSignIn,
   onSignOut,
+  keyCount,
+  onOpenApiKeys,
 }: NavbarProps) {
   const prefersReduced = useReducedMotion();
 
@@ -37,13 +41,34 @@ export function Navbar({
   return (
     <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 transition-colors">
       <div className="max-w-[1360px] mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4 sm:gap-8">
-        {/* Zone 1: Single-line Brand Wordmark */}
+        {/* Zone 1: Creative Brand Logo */}
         <button
           type="button"
           onClick={() => onNavigate("landing")}
-          className="font-display text-lg font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-md px-1 -ml-1"
+          className="flex items-center gap-2 shrink-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-md px-1 -ml-1 group"
         >
-          VoxForge Studio
+          {/* Logo Icon */}
+          <div className="relative w-8 h-8">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-emerald-500 rounded-lg group-hover:from-orange-600 group-hover:to-emerald-600 transition-all duration-200"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
+                <path d="M12 6L12 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M8 9L8 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M16 9L16 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.5"/>
+              </svg>
+            </div>
+          </div>
+          
+          {/* Brand Name */}
+          <div className="flex flex-col">
+            <span className="font-display text-lg font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
+              VoxForge Studio
+            </span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide">
+              Voice Crafting Workspace
+            </span>
+          </div>
         </button>
 
         {/* Zone 2: Clean Single-Line Navigation Links (Desktop) */}
@@ -86,6 +111,27 @@ export function Navbar({
 
         {/* Zone 3: Theme Toggle + Primary Account / Studio Action */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={onOpenApiKeys}
+            aria-label={`Manage Gemini API keys (${keyCount} configured)`}
+            title={
+              keyCount > 0
+                ? `${keyCount} Gemini API key${keyCount === 1 ? "" : "s"} in pool`
+                : "Add Gemini API keys"
+            }
+            className={`h-10 sm:h-9 px-2.5 rounded-lg border flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
+              keyCount > 0
+                ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/70"
+                : "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/70"
+            }`}
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span className="text-xs font-semibold tabular-nums">
+              {keyCount > 0 ? keyCount : "Add keys"}
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={onToggleTheme}

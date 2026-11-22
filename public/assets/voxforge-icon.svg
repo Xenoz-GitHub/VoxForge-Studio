@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F97316"/>
+      <stop offset="50%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="55" fill="url(#iconGradient)" opacity="0.95"/>
+  
+  <!-- Glow effect -->
+  <circle cx="60" cy="60" r="52" fill="url(#glow)" opacity="0.3"/>
+  
+  <!-- Abstract sound wave + studio tool -->
+  <g transform="translate(30, 30) scale(0.5)">
+    
+    <!-- Central audio wave -->
+    <path d="M30,60 Q45,40 60,60 Q75,80 90,60 Q105,40 120,60" 
+          fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-opacity="0.9"/>
+    
+    <!-- Studio precision indicators -->
+    <circle cx="60" cy="60" r="20" fill="none" stroke="white" stroke-width="2" stroke-opacity="0.6"/>
+    
+    <!-- Creative spark elements -->
+    <g transform="translate(60, 60)">
+      <path d="M-12,-12 L-6,-6 L-12,0 L-18,-6 Z" fill="white" opacity="0.8"/>
+      <path d="M12,-12 L6,-6 L12,0 L18,-6 Z" fill="white" opacity="0.8"/>
+      <path d="M0,12 L-6,6 L0,0 L6,6 Z" fill="white" opacity="0.8"/>
+    </g>
+    
+    <!-- Mic/studio element -->
+    <g transform="translate(60, 60)">
+      <circle cx="0" cy="-25" r="8" fill="white" opacity="0.7"/>
+      <line x1="0" y1="-17" x2="0" y2="10" stroke="white" stroke-width="3" stroke-opacity="0.7"/>
+      <line x1="-15" y1="10" x2="15" y2="10" stroke="white" stroke-width="3" stroke-opacity="0.7"/>
+    </g>
+    
+  </g>
+  
+  <!-- Subtle ring -->
+  <circle cx="60" cy="60" r="57" fill="none" stroke="white" stroke-width="1" stroke-opacity="0.2"/>
+  
+</svg>
